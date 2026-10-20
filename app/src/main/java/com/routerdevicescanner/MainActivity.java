@@ -224,9 +224,10 @@ public class MainActivity extends Activity {
                 found.add("Scan error: " + e.getClass().getSimpleName() + (e.getMessage() == null ? "" : ": " + e.getMessage()));
             }
 
+            final List<String> scanResults = new ArrayList<>(found);
             runOnUiThread(() -> {
                 discovered.clear();
-                discovered.addAll(found);
+                discovered.addAll(scanResults);
                 resultList.removeAllViews();
                 for (String row : discovered) {
                     TextView item = new TextView(this);
