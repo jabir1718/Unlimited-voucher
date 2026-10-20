@@ -19,6 +19,10 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.net.Uri;
 import java.net.InetAddress;
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -190,7 +194,7 @@ public class MainActivity extends Activity {
                             tasks.add(probes.submit(() -> {
                                 byte[] addr = {(byte)(value >>> 24), (byte)(value >>> 16), (byte)(value >>> 8), (byte)value};
                                 InetAddress host = InetAddress.getByAddress(addr);
-                                return host.isReachable(350) ? host.getHostAddress() + "    MAC: unavailable" : null;
+                                return host.isReachable(350) ? host.getHostAddress() : null;
                             }));
                         }
                         for (Future<String> task : tasks) {
@@ -204,7 +208,17 @@ public class MainActivity extends Activity {
                     } finally {
                         probes.shutdownNow();
                     }
-                    if (found.isEmpty()) found.add("No devices replied to the discovery probe. Some phones/routers block these probes; this does not prove the network is empty.");
+                    if (!found.isEmpty()) {
+                        Map<String, String> arp = readArpTable();
+                        List<String> rows = new ArrayList<>();
+                        for (String ipAddress : found) {
+                            String mac = arp.get(ipAddress);
+                            rows.add(ipAddress + "    MAC: " + (mac == null ? "unavailable" : mac));
+                        }
+                        found = rows;
+                    } else {
+                        found.add("No devices replied to the discovery probe. Some phones/routers block these probes; this does not prove the network is empty.");
+                    }
                 }
             } catch (Exception e) {
                 found.add("Scan error: " + e.getClass().getSimpleName() + (e.getMessage() == null ? "" : ": " + e.getMessage()));
@@ -223,9 +237,9 @@ public class MainActivity extends Activity {
                     item.setClickable(true);
                     item.setFocusable(true);
                     item.setOnClickListener(v -> {
-                        if (row.contains("MAC: unavailable") && row.matches(".*\\d+\\.\\d+\\.\\d+\\.\\d+.*")) {
+                        if (row.contains("MAC: ") && row.matches(".*\\d+\\.\\d+\\.\\d+\\.\\d+.*")) {
                             selectedHost = row.substring(0, row.indexOf("    "));
-                            selected.setText("Selected device IP: " + selectedHost + "\nRemote MAC: unavailable");
+                            selected.setText("Selected device: " + row);
                         }
                     });
                     resultList.addView(item, new LinearLayout.LayoutParams(-1, -2));
@@ -233,6 +247,24 @@ public class MainActivity extends Activity {
                 scan.setEnabled(true);
             });
         });
+    }
+
+    private Map<String, String> readArpTable() {
+        Map<String, String> entries = new HashMap<>();
+        try (BufferedReader reader = new BufferedReader(new FileReader("/proc/net/arp"))) {
+            String line;
+            reader.readLine();
+            while ((line = reader.readLine()) != null) {
+                String[] parts = line.trim().split("\\s+");
+                if (parts.length >= 4 && parts[3].matches("(?i)([0-9a-f]{2}:){5}[0-9a-f]{2}")
+                        && !parts[3].equalsIgnoreCase("00:00:00:00:00:00")) {
+                    entries.put(parts[0], parts[3].toUpperCase(java.util.Locale.US));
+                }
+            }
+        } catch (Exception ignored) {
+            // Android may restrict access to the ARP table.
+        }
+        return entries;
     }
 
     @Override protected void onDestroy() {
