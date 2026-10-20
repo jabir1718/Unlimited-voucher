@@ -74,9 +74,9 @@ public class MainActivity extends Activity {
 
         resultList = new LinearLayout(this);
         resultList.setOrientation(LinearLayout.VERTICAL);
-        ScrollView scroll = new ScrollView(this);
-        scroll.addView(resultList);
-        root.addView(scroll, new LinearLayout.LayoutParams(-1, 0, 1));
+        // Keep results in the page's main scroll container so controls remain
+        // reachable on small phones instead of being pushed off-screen.
+        root.addView(resultList, new LinearLayout.LayoutParams(-1, -2));
 
         selected = new TextView(this);
         selected.setText("Selected device: none");
@@ -101,7 +101,10 @@ public class MainActivity extends Activity {
         note.setTextSize(12);
         root.addView(note);
 
-        setContentView(root);
+        ScrollView pageScroll = new ScrollView(this);
+        pageScroll.setFillViewport(true);
+        pageScroll.addView(root);
+        setContentView(pageScroll);
         showNetwork();
         scan.setOnClickListener(v -> startScan());
         openChanger.setOnClickListener(v -> {
