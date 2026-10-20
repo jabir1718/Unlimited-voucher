@@ -32,6 +32,8 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.security.SecureRandom;
+import java.util.Locale;
 
 public class MainActivity extends Activity {
     private final ExecutorService worker = Executors.newSingleThreadExecutor();
@@ -39,6 +41,8 @@ public class MainActivity extends Activity {
     private LinearLayout resultList;
     private Button scan;
     private Spinner vouchers;
+    private EditText macInput;
+    private final SecureRandom random = new SecureRandom();
     private final List<String> discovered = new ArrayList<>();
     private String selectedHost = null;
 
@@ -143,20 +147,31 @@ public class MainActivity extends Activity {
         root.addView(selected);
 
         TextView voucherLabel = new TextView(this);
-        voucherLabel.setText("Voucher preset (display only)");
+        voucherLabel.setText("PRIVATE MAC ADDRESS • THIS PHONE");
+        voucherLabel.setTextSize(16);
         root.addView(voucherLabel);
 
+        macInput = new EditText(this);
+        macInput.setSingleLine(true);
+        macInput.setHint("02:11:22:33:44:55");
+        macInput.setInputType(InputType.TYPE_CLASS_TEXT);
+        root.addView(macInput);
+
         vouchers = new Spinner(this);
-        String[] items = {"Select preset…", "Voucher 01", "Voucher 02", "Voucher 03", "Voucher 04", "Voucher 05", "Voucher 06", "Voucher 07", "Voucher 08", "Voucher 09", "Voucher 10", "Voucher 11", "Voucher 12"};
+        String[] items = {"Choose a generated private MAC…"};
         vouchers.setAdapter(new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, items));
         root.addView(vouchers);
+
+        Button generateMac = new Button(this);
+        generateMac.setText("GENERATE PRIVATE MAC");
+        root.addView(generateMac);
 
         Button openChanger = new Button(this);
         openChanger.setText("OPEN CHANGE MY MAC");
         root.addView(openChanger);
 
         TextView note = new TextView(this);
-        note.setText("Presets are not real voucher codes and do not change a MAC address. This button opens the separate utility; it does not transfer a selected remote device's MAC.");
+        note.setText("Generates a private, locally administered MAC for your own phone. The app does not copy a detected device's identity or apply changes automatically. Actual changes depend on Android, root permission and Wi-Fi driver support.");
         note.setTextSize(12);
         root.addView(note);
 
@@ -175,12 +190,14 @@ public class MainActivity extends Activity {
                 openStoreListing();
             }
         });
-        vouchers.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener() {
-            @Override public void onItemSelected(android.widget.AdapterView<?> parent, View view, int position, long id) {
-                if (position > 0) status.setText("Preset selected: " + items[position] + " (display only; no MAC change performed).");
-                else showNetwork();
-            }
-            @Override public void onNothingSelected(android.widget.AdapterView<?> parent) {}
+        generateMac.setOnClickListener(v -> {
+            byte[] b = new byte[6];
+            random.nextBytes(b);
+            b[0] = (byte)((b[0] & 0xFC) | 0x02);
+            String mac = String.format(Locale.US, "%02X:%02X:%02X:%02X:%02X:%02X",
+                b[0] & 255, b[1] & 255, b[2] & 255, b[3] & 255, b[4] & 255, b[5] & 255);
+            macInput.setText(mac);
+            status.setText("Private MAC generated. Nothing has been applied yet.");
         });
     }
 
