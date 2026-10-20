@@ -27,7 +27,8 @@ import java.util.concurrent.Executors;
 
 public class MainActivity extends Activity {
     private final ExecutorService worker = Executors.newSingleThreadExecutor();
-    private TextView status, results, selected;
+    private TextView status, selected;
+    private LinearLayout resultList;
     private Button scan;
     private Spinner vouchers;
     private final List<String> discovered = new ArrayList<>();
@@ -59,10 +60,10 @@ public class MainActivity extends Activity {
         hint.setText("Tap a discovered device to select it. MAC addresses are shown only when Android exposes them.");
         hint.setPadding(0, 10, 0, 8);
         root.addView(hint);
-        results = new TextView(this);
-        results.setTextSize(15);
+        resultList = new LinearLayout(this);
+        resultList.setOrientation(LinearLayout.VERTICAL);
         ScrollView scroll = new ScrollView(this);
-        scroll.addView(results);
+        scroll.addView(resultList);
         root.addView(scroll, new LinearLayout.LayoutParams(-1, 0, 1));
         selected = new TextView(this);
         selected.setText("Selected device: none");
@@ -115,7 +116,10 @@ public class MainActivity extends Activity {
 
     private void startScan() {
         scan.setEnabled(false);
-        results.setText("Scanning authorized local IPv4 network…");
+        resultList.removeAllViews();
+        TextView loading = new TextView(this);
+        loading.setText("Scanning authorized local IPv4 network…");
+        resultList.addView(loading);
         discovered.clear();
         worker.execute(() -> {
             List<String> found = new ArrayList<>();
@@ -149,9 +153,7 @@ public class MainActivity extends Activity {
             runOnUiThread(() -> {
                 discovered.clear();
                 discovered.addAll(found);
-                LinearLayout list = new LinearLayout(this);
-                list.setOrientation(LinearLayout.VERTICAL);
-                results.setText("");
+                resultList.removeAllViews();
                 for (String row : discovered) {
                     Button item = new Button(this);
                     item.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
@@ -160,10 +162,8 @@ public class MainActivity extends Activity {
                         selectedHost = row;
                         selected.setText("Selected device: " + row);
                     });
-                    list.addView(item);
+                    resultList.addView(item);
                 }
-                // Render discovered rows as selectable buttons inside the existing result view.
-                results.setText(found.isEmpty() ? "No devices found." : android.text.TextUtils.join("\\n", found));
                 scan.setEnabled(true);
             });
         });
