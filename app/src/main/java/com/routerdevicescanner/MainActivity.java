@@ -170,6 +170,10 @@ public class MainActivity extends Activity {
         applyMac.setText("APPLY CUSTOM MAC TO THIS PHONE");
         root.addView(applyMac);
 
+        Button rebootPhone = new Button(this);
+        rebootPhone.setText("REBOOT PHONE");
+        root.addView(rebootPhone);
+
         Button openChanger = new Button(this);
         openChanger.setText("OPEN CHANGE MY MAC");
         root.addView(openChanger);
@@ -204,6 +208,30 @@ public class MainActivity extends Activity {
             status.setText("Private MAC generated. Nothing has been applied yet.");
         });
         applyMac.setOnClickListener(v -> applyCustomMacToThisPhone());
+        rebootPhone.setOnClickListener(v -> new android.app.AlertDialog.Builder(this)
+            .setTitle("Reboot phone?")
+            .setMessage("This will restart the entire phone. Save your work first. Root permission is required.")
+            .setNegativeButton("CANCEL", (dialog, which) -> dialog.dismiss())
+            .setPositiveButton("REBOOT NOW", (dialog, which) -> rebootPhoneWithRoot())
+            .show());
+    }
+
+    private void rebootPhoneWithRoot() {
+        status.setText("Requesting root permission to reboot…");
+        worker.execute(() -> {
+            String result;
+            try {
+                Process p = new ProcessBuilder("su", "-c", "reboot").redirectErrorStream(true).start();
+                boolean exited = p.waitFor(5, java.util.concurrent.TimeUnit.SECONDS);
+                result = exited
+                    ? "Reboot command finished. If the phone did not restart, root/ROM may block it."
+                    : "Reboot command sent. The phone should restart shortly if root permission was granted.";
+            } catch (Exception e) {
+                result = "Could not send reboot command. A rooted phone with su permission is required: " + e.getClass().getSimpleName();
+            }
+            final String message = result;
+            runOnUiThread(() -> status.setText(message));
+        });
     }
 
     private void applyCustomMacToThisPhone() {
