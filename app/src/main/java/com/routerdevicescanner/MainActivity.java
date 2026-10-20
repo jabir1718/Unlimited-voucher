@@ -13,6 +13,8 @@ import android.view.Gravity;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.EditText;
+import android.text.InputType;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.Spinner;
@@ -42,6 +44,63 @@ public class MainActivity extends Activity {
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
+        showPasswordGate();
+    }
+
+    private void showPasswordGate() {
+        LinearLayout gate = new LinearLayout(this);
+        gate.setOrientation(LinearLayout.VERTICAL);
+        gate.setGravity(Gravity.CENTER);
+        gate.setPadding(28, 28, 28, 28);
+
+        TextView title = new TextView(this);
+        title.setText("UNLIMITED VOUCHER");
+        title.setTextSize(26);
+        title.setGravity(Gravity.CENTER);
+        gate.addView(title, new LinearLayout.LayoutParams(-1, -2));
+
+        TextView message = new TextView(this);
+        message.setText("Enter password to access the app");
+        message.setTextSize(16);
+        message.setGravity(Gravity.CENTER);
+        message.setPadding(0, 18, 0, 18);
+        gate.addView(message, new LinearLayout.LayoutParams(-1, -2));
+
+        EditText passwordInput = new EditText(this);
+        passwordInput.setSingleLine(true);
+        passwordInput.setHint("Password");
+        passwordInput.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
+        gate.addView(passwordInput, new LinearLayout.LayoutParams(-1, -2));
+
+        TextView error = new TextView(this);
+        error.setText("");
+        error.setGravity(Gravity.CENTER);
+        error.setPadding(0, 8, 0, 8);
+        gate.addView(error, new LinearLayout.LayoutParams(-1, -2));
+
+        Button unlock = new Button(this);
+        unlock.setText("UNLOCK");
+        gate.addView(unlock, new LinearLayout.LayoutParams(-1, -2));
+
+        unlock.setOnClickListener(v -> {
+            if ("#55555#".equals(passwordInput.getText().toString())) {
+                buildMainScreen();
+            } else {
+                error.setText("Incorrect password. Try again.");
+                passwordInput.setText("");
+                passwordInput.requestFocus();
+            }
+        });
+
+        passwordInput.setOnEditorActionListener((v, actionId, event) -> {
+            unlock.performClick();
+            return true;
+        });
+
+        setContentView(gate);
+    }
+
+    private void buildMainScreen() {
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setPadding(24, 24, 24, 20);
